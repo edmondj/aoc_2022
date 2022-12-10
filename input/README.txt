@@ -1,0 +1,1 @@
+Put your input in this directory in the form of `d<day_number>.txt', for example d01.txt
