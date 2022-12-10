@@ -35,7 +35,7 @@ std::vector<elf> parse_elves(std::istream& input) {
       new_elf = true;
     }
     else {
-      auto& elf = elves.back().total_calories += std::stoull(line);
+      elves.back().total_calories += std::stoull(line);
     }
   }
   return elves;

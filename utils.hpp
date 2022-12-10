@@ -41,6 +41,7 @@ namespace ranges {
 
   template<std::ranges::input_range R>
   auto reduce(R&& r) {
-    return std::reduce(std::ranges::begin(r), std::ranges::end(r));
+    auto common = r | std::views::common;
+    return std::reduce(common.begin(), common.end());
   }
 }

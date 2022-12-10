@@ -11,6 +11,7 @@ uint64_t score_of(Shape s) {
   case Shape::Paper: return 2;
   case Shape::Scissors: return 3;
   }
+  throw std::runtime_error("unreachable");
 }
 
 Shape winner_of(Shape s) {
@@ -19,6 +20,7 @@ Shape winner_of(Shape s) {
   case Shape::Paper: return Shape::Scissors;
   case Shape::Scissors: return Shape::Rock;
   }
+  throw std::runtime_error("unreachable");
 }
 
 Shape loser_of(Shape s) {
@@ -27,6 +29,7 @@ Shape loser_of(Shape s) {
   case Shape::Paper: return Shape::Rock;
   case Shape::Scissors: return Shape::Paper;
   }
+  throw std::runtime_error("unreachable");
 }
 
 Shape get_opponent_shape(char c) {

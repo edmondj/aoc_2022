@@ -7,6 +7,11 @@ add_executable (aos_2022_cpp "main.cpp"  "days.hpp" "days.cpp" "d00.cpp" "d01.cp
 
 set_property(TARGET aos_2022_cpp PROPERTY CXX_STANDARD 20)
 
+target_compile_options(aos_2022_cpp PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+)
+
 include(FetchContent)
 FetchContent_Declare(
   googletest

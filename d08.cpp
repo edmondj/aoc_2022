@@ -36,7 +36,6 @@ visibility map_visibility(const forest& f) {
   size_t width = f[0].size();
   visibility v;
   v.resize(height, std::vector<bool>(width, false));
-  size_t tallest = 0;
 
   for (size_t y = 0; y < height; ++y) {
     auto left_to_right = std::views::iota(size_t{ 0 }, width)
@@ -44,8 +43,8 @@ visibility map_visibility(const forest& f) {
           return pos{ x, y };
         })
     ;
-    for (const auto [x, y] : filter_visible(left_to_right, f)) {
-      v[y][x] = true;
+    for (const auto [vx, vy] : filter_visible(left_to_right, f)) {
+      v[vy][vx] = true;
     }
 
     auto right_to_left = std::views::iota(size_t{ 0 }, width)
@@ -54,8 +53,8 @@ visibility map_visibility(const forest& f) {
           return pos{ x, y };
         })
     ;
-    for (const auto [x, y] : filter_visible(right_to_left, f)) {
-      v[y][x] = true;
+    for (const auto [vx, vy] : filter_visible(right_to_left, f)) {
+      v[vy][vx] = true;
     }
   }
 
@@ -65,8 +64,8 @@ visibility map_visibility(const forest& f) {
           return pos{ x, y };
         })
     ;
-    for (const auto [x, y] : filter_visible(top_to_bottom, f)) {
-      v[y][x] = true;
+    for (const auto [vx, vy] : filter_visible(top_to_bottom, f)) {
+      v[vy][vx] = true;
     }
 
     auto bottom_to_top = std::views::iota(size_t{ 0 }, height)
@@ -75,8 +74,8 @@ visibility map_visibility(const forest& f) {
           return pos{ x, y };
         })
     ;
-    for (const auto [x, y] : filter_visible(bottom_to_top, f)) {
-      v[y][x] = true;
+    for (const auto [vx, vy] : filter_visible(bottom_to_top, f)) {
+      v[vy][vx] = true;
     }
   }
   return v;
