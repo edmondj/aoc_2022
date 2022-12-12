@@ -4,10 +4,85 @@
 #include <gtest/gtest.h>
 #include <array>
 
+#define CHECK_OVERFLOW 1
+
+using int_worry = std::uint64_t;
+using worry_limits = std::numeric_limits<int_worry>;
+
+class worry {
+public:
+  worry() = default;
+  worry(int_worry value)
+    : value(value)
+  {}
+
+  worry operator+(const worry& r) const {
+#ifdef CHECK_OVERFLOW
+    if ((r.value > 0 && value > worry_limits::max() - r.value)
+    || (r.value < 0 && value < worry_limits::min() - r.value)) {
+      throw std::overflow_error("overflow during add");
+    }
+#endif
+    return worry(value + r.value);
+  }
+
+  worry operator-(const worry& r) const {
+#ifdef CHECK_OVERFLOW
+    if ((r.value < 0 && value > worry_limits::max() + r.value)
+      || (r.value > 0 && value < worry_limits::min() + r.value)) {
+      throw std::overflow_error("overflow during sub");
+    }
+#endif
+    return worry(value - r.value);
+  }
+
+  worry operator*(const worry& r) const {
+#ifdef CHECK_OVERFLOW
+    if ((value == -1 && r.value == worry_limits::min())
+      || (r.value == -1 && value == worry_limits::min())
+      || (r.value != 0 && value > worry_limits::max() / r.value)
+      || (r.value != 0 && value < worry_limits::min() / r.value)) {
+      throw std::overflow_error("overflow during mul");
+    }
+#endif
+    return worry(value * r.value);
+  }
+
+  worry operator/(const worry& r) const {
+    return worry(value / r.value);
+  }
+
+  worry& operator/=(const worry& r) {
+    value = (*this / r).value;
+    return *this;
+  }
+
+  worry operator%(const worry& r) const {
+    return worry(value % r.value);
+  }
+
+  worry& operator%=(const worry& r) {
+    value = (*this % r).value;
+    return *this;
+  }
+
+  auto operator<=>(const worry&) const = default;
+
+  static worry lcm(const worry& l, const worry& r) {
+    return worry(std::lcm(l.value, r.value));
+  }
+
+private:
+  int_worry value;
+};
+
+
+//using worry = int_worry;
+
 struct monkey {
-  std::vector<int64_t> items;
-  std::function<int64_t(int64_t)> operation;
-  int64_t test;
+  std::vector<worry> items;
+  std::function<worry(worry)> operation;
+  worry test;
   size_t target_if_true, target_if_false;
   size_t inspected = 0;
 
@@ -27,7 +102,7 @@ struct monkey {
           auto splitted = std::views::split(line.substr(19), ' ');
           auto it = splitted.begin();
           auto end = splitted.end();
-          std::optional<int64_t> lsrc, rscr;
+          std::optional<worry> lsrc, rscr;
           char op;
           if (std::string_view lstr((*it).begin(), (*it).end()); lstr != "old") {
             lsrc = std::stoll(std::string(lstr));
@@ -36,11 +111,11 @@ struct monkey {
           op = (*it).front();
           ++it;
           if (std::string_view lstr((*it).begin(), (*it).end()); lstr != "old") {
-            rscr = std::stoll(std::string(lstr));
+            rscr = std::stoull(std::string(lstr));
           }
-          out.operation = [lsrc, rscr, op](int64_t old) {
-            int64_t l = lsrc.value_or(old);
-            int64_t r = rscr.value_or(old);
+          out.operation = [lsrc, rscr, op](worry old) {
+            worry l = lsrc.value_or(old);
+            worry r = rscr.value_or(old);
 
             switch (op) {
             case '+': return l + r;
@@ -92,9 +167,9 @@ std::vector<monkey> parse_all_monkeys(std::istream& input) {
   return sent;
 }
 
-void exec_round(std::vector<monkey>& state, bool worried_inspection, int64_t lcm) {
+void exec_round(std::vector<monkey>& state, bool worried_inspection, worry lcm) {
   for (monkey& m : state) {
-    for (int64_t item : m.items) {
+    for (worry item : m.items) {
       ++m.inspected;
       item = m.operation(item);
       if (!worried_inspection) {
@@ -114,9 +189,9 @@ void exec_round(std::vector<monkey>& state, bool worried_inspection, int64_t lcm
 }
 
 size_t exec_multiple_rounds(std::vector<monkey>& monkeys, size_t count, bool worried_insepction) {
-  int64_t lcm = 1;
+  worry lcm = 1;
   for (const monkey& m : monkeys) {
-    lcm = std::lcm(lcm, m.test);
+    lcm = worry::lcm(lcm, m.test);
   }
   for ([[maybe_unused]] auto i : std::views::iota(size_t{ 0 }, count)) {
     exec_round(monkeys, worried_insepction, lcm);
@@ -153,7 +228,7 @@ Monkey 0:
 )");
   monkey m;
   ASSERT_TRUE(stream >> m);
-  auto target_item = std::vector<int64_t>{ 79, 98 };
+  auto target_item = std::vector<worry>{ 79, 98 };
   EXPECT_EQ(m.items, target_item);
   EXPECT_EQ(m.operation(2), 2 * 19);
   EXPECT_EQ(m.test, 23);
