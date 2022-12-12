@@ -61,7 +61,7 @@ int main(int ac, const char** av) {
           return;
         }
       }
-      std::cout << "NOT FOUND\n";
+      std::cout << "DAY NOT FOUND\n";
     },
     [](launch_option::test test) {
       ::testing::InitGoogleTest();
