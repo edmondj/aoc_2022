@@ -53,10 +53,24 @@ int main(int ac, const char** av) {
           if (!file) {
             std::cout << "NO INPUT\n";
           } else {
-            std::cout << "Part 1: " << (d.part1 ? d.part1(file) : "NOT IMPLEMENTED") << '\n';
-            file.clear();
-            file.seekg(0, std::ios_base::beg);
-            std::cout << "Part 2: " << (d.part2 ? d.part2(file) : "NOT IMPLEMENTED") << '\n';
+            if (!d.part1) {
+              std::cout << "NOT IMPLEMENTED\n";
+            } else {
+              auto start = std::chrono::steady_clock::now();
+              auto res = d.part1(file);
+              auto end = std::chrono::steady_clock::now();
+              std::cout << "Part 1: " << res << '\n';
+              std::cout << "  found in " << std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end - start).count() << "ms\n";
+              if (d.part2) {
+                file.clear();
+                file.seekg(0, std::ios_base::beg);
+                start = std::chrono::steady_clock::now();
+                res = d.part2(file);
+                end = std::chrono::steady_clock::now();
+                std::cout << "Part 2: " << res << '\n';
+                std::cout << "  found in " << std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end - start).count() << "ms\n";
+              }
+            }
           }
           return;
         }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <charconv>
+#include <string_view>
 #include <variant>
 #include <optional>
 #include <fstream>
@@ -44,4 +46,14 @@ namespace ranges {
     auto common = r | std::views::common;
     return std::reduce(common.begin(), common.end());
   }
+}
+
+template<typename T>
+T string_view_to(std::string_view s) {
+  T sent{};
+  auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), sent);
+  if (ec != std::errc()) {
+    throw std::runtime_error("parse error");
+  }
+  return sent;
 }
