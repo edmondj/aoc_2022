@@ -3,7 +3,7 @@
 project ("aos_2022_cpp")
 
 # Add source to this project's executable.
-add_executable (aos_2022_cpp "main.cpp"  "days.hpp" "days.cpp" "d00.cpp" "d01.cpp" "d02.cpp" "d03.cpp" "d04.cpp" "d05.cpp" "d06.cpp" "d07.cpp" "d08.cpp" "d09.cpp" "d10.cpp" "d11.cpp" "d12.cpp" "d13.cpp")
+add_executable (aos_2022_cpp "main.cpp"  "days.hpp" "days.cpp" "d00.cpp" "d01.cpp" "d02.cpp" "d03.cpp" "d04.cpp" "d05.cpp" "d06.cpp" "d07.cpp" "d08.cpp" "d09.cpp" "d10.cpp" "d11.cpp" "d12.cpp" "d13.cpp" "d14.cpp")
 
 set_property(TARGET aos_2022_cpp PROPERTY CXX_STANDARD 20)
 

@@ -57,3 +57,14 @@ T string_view_to(std::string_view s) {
   }
   return sent;
 }
+
+template<std::signed_integral T>
+T sign_of(T v) {
+  if (v > 0) {
+    return 1;
+  }
+  else if (v == 0) {
+    return 0;
+  }
+  return -1;
+}

@@ -1,4 +1,5 @@
 #include "days.hpp"
+#include "utils.hpp"
 #include <gtest/gtest.h>
 #include <set>
 
@@ -12,16 +13,6 @@ struct pos {
     return out << '(' << p.x << ", " << p.y << ')';
   }
 };
-
-constexpr int64_t sign_of(int64_t v) {
-  if (v > 0) {
-    return 1;
-  }
-  else if (v == 0) {
-    return 0;
-  }
-  return -1;
-}
 
 std::set<pos> pull_head(std::istream& input, size_t rope_len = 2) {
   auto rope = std::vector<pos>(rope_len, pos{ 0, 0 });
