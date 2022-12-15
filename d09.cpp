@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 #include <set>
 
+namespace {
+
 struct pos {
   int64_t x = 0;
   int64_t y = 0;
@@ -160,4 +162,6 @@ L 2
     auto target = std::set<pos>{ {0, 0}, {-1, 1} };
     EXPECT_EQ(visited, target);
   }
+}
+
 }

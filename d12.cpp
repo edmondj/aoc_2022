@@ -2,6 +2,8 @@
 #include "utils.hpp"
 #include <gtest/gtest.h>
 
+namespace {
+
 struct pos {
   size_t x, y;
 
@@ -136,4 +138,5 @@ abdefghi
 )");
   stream.get();
   EXPECT_EQ(best_path_size(parse_input(stream)), 31);
+}
 }

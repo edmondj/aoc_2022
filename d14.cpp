@@ -2,6 +2,8 @@
 #include "utils.hpp"
 #include <gtest/gtest.h>
 
+namespace {
+
 using dist = int64_t;
 
 struct pos {
@@ -134,4 +136,6 @@ TEST(d14, part2) {
       ++i;
     }
     EXPECT_EQ(i, 93);
+}
+
 }
