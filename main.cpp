@@ -79,7 +79,8 @@ int main(int ac, const char** av) {
     },
     [](launch_option::test test) {
       ::testing::InitGoogleTest();
-      ::testing::GTEST_FLAG(filter) = std::string{ test.day } + "*";
+    ::testing::GTEST_FLAG(filter) = std::string{ test.day } + "*";
+      ::testing::GTEST_FLAG(catch_exceptions) = 0;
       RUN_ALL_TESTS();
     }
   );
