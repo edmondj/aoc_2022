@@ -7,35 +7,35 @@ namespace d17 {
 
   class tetris {
   public:
-    using cell_t = bool;
-    static constexpr cell_t ROCKS = true;
-    static constexpr cell_t SPACE = false;
+    using line_t = uint8_t;
+    using grid_t = std::vector<line_t>;
+    using pattern_t = std::vector<line_t>;
 
     explicit tetris(std::string input)
       : m_input(std::move(input))
     {
       m_patterns.push_back({
-        { ROCKS, ROCKS, ROCKS, ROCKS }
+        0b11110000
       });
       m_patterns.push_back({
-        { SPACE, ROCKS, SPACE },
-        { ROCKS, ROCKS, ROCKS },
-        { SPACE, ROCKS, SPACE },
+        0b01000000,
+        0b11100000,
+        0b01000000
       });
       m_patterns.push_back({
-        { ROCKS, ROCKS, ROCKS },
-        { SPACE, SPACE, ROCKS },
-        { SPACE, SPACE, ROCKS },
+        0b11100000,
+        0b00100000,
+        0b00100000
       });
       m_patterns.push_back({
-        { ROCKS },
-        { ROCKS },
-        { ROCKS },
-        { ROCKS }
+        0b10000000,
+        0b10000000,
+        0b10000000,
+        0b10000000
       });
       m_patterns.push_back({
-        { ROCKS, ROCKS },
-        { ROCKS, ROCKS },
+        0b11000000,
+        0b11000000
       });
     }
 
@@ -61,17 +61,73 @@ namespace d17 {
       merge(pattern, x, y);
     }
 
-    size_t grid_height() const { return m_grid.size(); }
+    struct rock_cycle_t {
+      std::vector<size_t> first_cycles_height;
+      size_t cycle_start;
+      size_t cycle_duration;
+      size_t cycle_height;
 
-    cell_t grid_at(int64_t x, int64_t y) const {
-      if (x < 0 || x >= 7 || y < 0) {
-        return ROCKS;
+      size_t height_of_iter(size_t iter) const {
+        if (iter < cycle_start) {
+          return first_cycles_height[iter];
+        }
+        iter -= cycle_start;
+        return cycle_height * (iter / cycle_duration)
+          + first_cycles_height[cycle_start + iter % cycle_duration];
       }
-      if (y >= static_cast<int64_t>(m_grid.size())) {
-        return SPACE;
+    };
+
+    static rock_cycle_t find_cycles(std::string input) {
+      struct state_t {
+        size_t next_pattern;
+        size_t next_move;
+        grid_t last_grid;
+
+        auto operator<=>(const state_t&) const = default;
+      };
+
+      auto t = tetris(std::move(input));
+
+      auto visited = std::map<state_t, size_t>{
+        {state_t{
+          .next_pattern = t.m_next_pattern,
+          .next_move = t.m_next_move,
+          .last_grid = grid_t{}
+        }, 0}
+      };
+      auto heights = std::vector<size_t>{ {0} };
+
+      while (true) {
+        t.drop_rock();
+        auto max_drop = t.m_grid.end() - 1;
+        line_t mask = 0;
+        while (max_drop != t.m_grid.begin() && mask != 0b11111110) {
+          mask |= *max_drop;
+          --max_drop;
+        }
+        auto state = state_t{
+          .next_pattern = t.m_next_pattern,
+          .next_move = t.m_next_move,
+          .last_grid = grid_t(max_drop, t.m_grid.end())
+        };
+        auto [it, inserted] = visited.insert(std::make_pair(std::move(state), heights.size()));
+        if (!inserted) {
+          size_t cycle_start = it->second;
+          size_t cycle_duration = heights.size() - cycle_start;
+          size_t cycle_height = t.grid_height() - heights[cycle_start];
+          // we found the cycle
+          return rock_cycle_t{
+            .first_cycles_height = std::move(heights),
+            .cycle_start = cycle_start,
+            .cycle_duration = cycle_duration,
+            .cycle_height = cycle_height
+          };
+        }
+        heights.push_back(t.grid_height());
       }
-      return m_grid[y][x];
     }
+
+    size_t grid_height() const { return m_grid.empty() ? 0 : m_grid.size(); }
 
     void debug_print() {
       std::cout << '+';
@@ -82,7 +138,7 @@ namespace d17 {
       for (int64_t y : std::views::iota(int64_t(0), int64_t(m_grid.size())) | std::views::reverse) {
         std::cout << '|';
         for (size_t x = 0; x < 7; ++x) {
-          std::cout << (grid_at(x, y) == ROCKS ? '#' : '.');
+          std::cout << (((m_grid[y] >> (7 - x)) & 1) == 1 ? '#' : '.');
         }
         std::cout << "|\n";
       }
@@ -93,16 +149,19 @@ namespace d17 {
       std::cout << "+\n";
     }
 
-  private:
-    using line_t = std::array<cell_t, 7>;
-    using grid_t = std::vector<line_t>;
-    using pattern_t = std::vector<std::vector<cell_t>>;
 
+  private:
     bool collides(const pattern_t& p, int64_t x, int64_t y) const {
+      if (y < 0 || x < 0) {
+        return true;
+      }
       for (size_t py = 0; py < p.size(); ++py) {
-        for (size_t px = 0; px < p[py].size(); ++px) {
-          if (p[py][px] == ROCKS
-            && grid_at(x + px, y + py) == ROCKS) {
+        line_t line = p[py];
+        if ((line & (1 << (x + 1)) - 1) != 0) {
+          return true;
+        }
+        if (y + py < m_grid.size()) {
+          if ((m_grid[y + py] & (line >> x)) != 0) {
             return true;
           }
         }
@@ -115,11 +174,7 @@ namespace d17 {
         if (m_grid.size() <= y + py) {
           m_grid.push_back(line_t{});
         }
-        for (size_t px = 0; px < p[py].size(); ++px) {
-          if (p[py][px] == ROCKS) {
-            m_grid[y + py][x + px] = ROCKS;
-          }
-        }
+        m_grid[y + py] |= (p[py] >> x);
       }
     }
 
@@ -130,6 +185,11 @@ namespace d17 {
     size_t m_next_move = 0;
     grid_t m_grid;
   };
+
+  size_t find_height_after(std::string input, size_t iter) {
+    auto cycles = tetris::find_cycles(std::move(input));
+    return cycles.height_of_iter(iter);
+  }
 
   REGISTER_DAY("d17",
     [](std::istream& in) {
@@ -144,11 +204,7 @@ namespace d17 {
     [](std::istream& in) {
       std::string line;
       std::getline(in, line);
-      auto t = tetris(std::move(line));
-      for (size_t i = 0; i < 1000000000000; ++i) {
-        t.drop_rock();
-      }
-      return std::to_string(t.grid_height());
+      return std::to_string(find_height_after(std::move(line), 1000000000000));
     }
   )
 
@@ -156,42 +212,56 @@ namespace d17 {
     auto t = tetris(">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>");
 
     t.drop_rock();
-    EXPECT_EQ(t.grid_height(), 1);
+    ASSERT_EQ(t.grid_height(), 1);
     t.drop_rock();
-    EXPECT_EQ(t.grid_height(), 4);
+    ASSERT_EQ(t.grid_height(), 4);
     t.drop_rock();
-    EXPECT_EQ(t.grid_height(), 6);
+    ASSERT_EQ(t.grid_height(), 6);
     t.drop_rock();
-    EXPECT_EQ(t.grid_height(), 7);
+    ASSERT_EQ(t.grid_height(), 7);
     t.drop_rock();
-    EXPECT_EQ(t.grid_height(), 9);
+    ASSERT_EQ(t.grid_height(), 9);
     t.drop_rock();
-    EXPECT_EQ(t.grid_height(), 10);
+    ASSERT_EQ(t.grid_height(), 10);
     t.drop_rock();
-    EXPECT_EQ(t.grid_height(), 13);
+    ASSERT_EQ(t.grid_height(), 13);
     t.drop_rock();
-    EXPECT_EQ(t.grid_height(), 15);
+    ASSERT_EQ(t.grid_height(), 15);
     t.drop_rock();
-    EXPECT_EQ(t.grid_height(), 17);
+    ASSERT_EQ(t.grid_height(), 17);
     t.drop_rock();
-    EXPECT_EQ(t.grid_height(), 17);
+    ASSERT_EQ(t.grid_height(), 17);
+  }
+
+  TEST(d17, cycles) {
+    std::string input = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>";
+    auto cycles = tetris::find_cycles(input);
+    auto t = tetris(input);
+    for (size_t i = 0; i <= cycles.cycle_start + 2 * cycles.cycle_duration; ++i) {
+      ASSERT_EQ(cycles.height_of_iter(i), t.grid_height()) << " i == " << i;
+      t.drop_rock();
+    }
+  }
+
+  TEST(d17, cycles_real) {
+    auto f = std::ifstream("input/d17.txt");
+    std::string input;
+    std::getline(f, input);
+    auto cycles = tetris::find_cycles(input);
+    auto t = tetris(input);
+    for (size_t i = 0; i <= cycles.cycle_start + 2 * cycles.cycle_duration; ++i) {
+      ASSERT_EQ(cycles.height_of_iter(i), t.grid_height()) << " i == " << i;
+      t.drop_rock();
+    }
   }
 
   TEST(d17, part1) {
-    auto t = tetris(">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>");
-
-    for (size_t i = 0; i < 2022; ++i) {
-      t.drop_rock();
-    }
-    EXPECT_EQ(t.grid_height(), 3068);
+    auto size = find_height_after(">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>", 2022);
+    ASSERT_EQ(size, 3068);
   }
 
   TEST(d17, part2) {
-    auto t = tetris(">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>");
-
-    for (size_t i = 0; i < 1000000000000; ++i) {
-      t.drop_rock();
-    }
-    EXPECT_EQ(t.grid_height(), 1514285714288);
+    auto size = find_height_after(">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>", 1000000000000);
+    ASSERT_EQ(size, 1514285714288);
   }
 }
