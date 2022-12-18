@@ -54,7 +54,29 @@ namespace d18 {
     if (ignore_pockets) {
       return ranges::reduce(free_space | std::views::values);
     }
-    return ranges::reduce(free_space | std::views::values | std::views::filter([](size_t c) { return c != 6; }));
+    pos_t min = { -1, -1, -1 };
+    pos_t max = { 25, 25, 25 };
+    size_t free = 0;
+    auto seen = std::set<pos_t>{ min };
+    auto to_see = std::vector<pos_t>{ min };
+    while (!to_see.empty()) {
+      auto new_to_see = std::vector<pos_t>{};
+      for (const pos_t& cur : to_see) {
+        for (pos_t s : sides | std::views::transform([&cur](const pos_t& s) { return cur + s; })) {
+          if (s.x >= min.x && s.y >= min.y && s.z >= min.z
+            && s.x <= max.x && s.y <= max.y && s.z <= max.z
+            && !cubes.contains(s) && seen.insert(s).second) {
+            auto found = free_space.find(s);
+            if (found != free_space.end()) {
+              free += found->second;
+            }
+            new_to_see.push_back(s);
+          }
+        }
+      }
+      to_see = std::move(new_to_see);
+    }
+    return free;
   }
 
   REGISTER_DAY("d18",
