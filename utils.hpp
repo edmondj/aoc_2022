@@ -36,9 +36,9 @@ inline std::optional<std::string> read_all_file(const std::string& filename) {
 }
 
 namespace ranges {
-  template<std::ranges::input_range R, class T>
-  bool contains(R&& r, const T& value) {
-    return std::ranges::find(r, value) != std::ranges::end(r);
+  template<std::ranges::input_range R, class T, class Proj = std::identity>
+  bool contains(R&& r, const T& value, Proj proj = {}) {
+    return std::ranges::find(r, value, proj) != std::ranges::end(r);
   }
 
   template<std::ranges::input_range R>
